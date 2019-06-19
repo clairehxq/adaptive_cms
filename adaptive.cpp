@@ -1,5 +1,4 @@
-#include "tcs.hpp"
-#include "cms.hpp"
+//#include "tcs.hpp"
 #include "adaptive_cms.hpp"
 
 #include <iostream>
@@ -7,36 +6,56 @@
 #include <vector>
 #include <utility>
 #include <cstring>
+#include <stdlib.h>
+#include <sstream>
 
-int main(){
+int main(int argc, char** argv){
+  std::cout<<"usage: width, height, rows, threshold, counts_file_path, stream_file_path"<<std::endl;
   std::string line;
-  std::ifstream counts_file ("zipf_counts.txt");
-  std::ifstream syn_file ("zipf_stream.txt");
-  std::vector<std::pair<uint64_t, int>> counts;
+  std::ifstream counts_file (argv[5]); //("data/zipf_counts.txt");
+  std::ifstream syn_file (argv[6]); //("data/zipf_stream.txt");
+  std::vector<std::pair<uint64_t, int> > counts;
   char k[20];
   int c;
   uint64_t key;
-  //counts_file.open();
+  unsigned W, H, R, T;
+  
+  W = atoi(argv[1]);
+  H = atoi(argv[2]);
+  R = atoi(argv[3]);
+  T = atoi(argv[4]);
+  //output file
+  std::string file_name;
+  file_name += "res/";
+  for (int i = 1; i < 5; i++){
+    file_name += argv[i];
+    file_name += "_";
+  }
+  std::stringstream m;
+  m << W*H*R;
+  file_name += m.str();
+  std::ofstream output_file (file_name.c_str());
+  std::cout<<"output to file "<< file_name <<std::endl;
+
   while (counts_file >> k >> c ){
     if (k == "stream")
       break;
     std::pair<uint64_t, int> p (kw2num(k), c);
     counts.push_back(p);
   }
+  // Width, Height, Rows, Hash_index_mean, threshold
+  adaptive_cms cms(W, H, R, W * (R-1) + 10, T);
+  adaptive_cms cms2(W*R, H, 1, W * R + 111, T);
+  cms.check_config();
+  cms2.check_config();
 
-
-  //CountMinSketch<100, 10, 1<<5> cms;
-  adaptive_cms<1<<4, 1<<2, 1<<18, 1000> cms;
-  adaptive_cms<1<<7, 1<<2, 1<<18, 1000> cms2;
   int cnum =0;
   while (syn_file>>k){
-    //std::cout<<k<<std::endl;
     key = kw2num(k);
     cms.addDeep(key);
     cms2.add(key);
     cnum ++;
   }
-
 
   for (auto& p: counts){
     std::string key = num2kw(p.first);
@@ -44,12 +63,14 @@ int main(){
     uint32_t estimate = cms.countMin(p.first);
     uint32_t estimate_big = cms2.countMin(p.first);
     int true_count = p.second;
-    printf("%u, %u, %u, %d\n", estimate_deep, estimate_big, estimate, true_count);
+    output_file << estimate_deep << ", " << estimate_big << "," << estimate << "," << true_count << std::endl;
   }
     
   cms.del();
   cms2.del();
-  //printf("%d\n", cms.countMin(key));
+  output_file.close();
+  counts_file.close();
+  syn_file.close();
   return 1;
 }
     
