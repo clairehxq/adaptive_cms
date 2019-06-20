@@ -2,6 +2,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstring>
+#include <climits>
 #include <random>
 #include <algorithm> 
 
@@ -45,7 +47,7 @@ inline uint64_t kw2num(const char *cur) {
 class adaptive_cms{
   
 private:
-  unsigned W, D, R, T, P;
+  unsigned W, D, R, P, T;
   uint32_t *__dataDeep,*__data;
   uint32_t *a, *b, *c, *bb, *cd;
   void init(unsigned W, unsigned D, unsigned R, unsigned P, unsigned T){
@@ -88,9 +90,19 @@ public:
     delete[] this->__dataDeep;
   }
 
-  bool at_capacity(uint64_t value, int i){
+  int at_capacity(uint64_t value, int i){
     int j = this->hash(value, i);
     if ( this->c[i*this->W + j] > this->T)
+      return 1;
+    else
+      return 0;
+  }
+
+  int at_capacity(uint64_t value){
+    int c=0;
+    for (int i=0; i<this->D; i++)
+      c += this->at_capacity(value, i);
+    if (c >= this->D)
       return 1;
     else
       return 0;
@@ -146,22 +158,13 @@ public:
     int W = this->W;
     int D = this->D;
     int R = this->R;
-    int T = this->T;
     for (auto i=0; i<D; ++i){
       uint32_t j = this->hash(value, i);
-    
-      fprintf(stderr, "%u %u %u %u %u %u %u %u\n", this->cd[i*W*(1<<3) + j*(1<<3) + 0], \
-	      this->cd[i*W*R + j*R + 1],\
-	      this->cd[i*W*R + j*R + 2],\
-	      this->cd[i*W*R + j*R + 3],\
-	      this->cd[i*W*R + j*R + 4],\
-	      this->cd[i*W*R + j*R + 5],\
-	      this->cd[i*W*R + j*R + 6],\
-	      this->cd[i*W*R + j*R + 7],\
-	      this->cd[i*W*R + j*R + 8]);
-    
+      for (int l=0; l<this->R; l++){
+	printf("%u ", this->cd[i*W*R + j*R + l]);
+      }
+      fprintf(stderr, "\n");
     }
-    fprintf(stderr, "\n");
   }
 
   void remove(uint64_t value) {
@@ -169,7 +172,6 @@ public:
     W = this->W;
     D = this->D;
     R = this->R;
-    T = this->T;
 
     for (auto i=0; i<D; ++i)
       --this->c[i*W + this->hash(value, i)];
@@ -180,7 +182,6 @@ public:
     W = this->W;
     D = this->D;
     R = this->R;
-    T = this->T;
     P = this->P;
     return ((value*this->a[hi] + this->b[hi]) % P) % W;
   }
@@ -190,17 +191,15 @@ public:
     W = this->W;
     D = this->D;
     R = this->R;
-    T = this->T;
     P = this->P;
     return ((value * this->bb[i] + a[i]) % (P-1) % R);
   }
   
   uint32_t countMin(uint64_t value) const {
-    uint32_t W, D, R, T;
+    uint32_t W, D, R;
     W = this->W;
     D = this->D;
     R = this->R;
-    T = this->T;
 
     uint32_t cnt = UINT_MAX;
     for (auto i=0; i<D; ++i)
