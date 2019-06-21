@@ -44,14 +44,15 @@ int main(int argc, char** argv){
     counts.push_back(p);
   }
   // Width, Height, Rows, Hash_index_mean, threshold
+  float over_capacity=0;
   for (int fold=0; fold<10; fold++){
     std::ifstream syn_file (argv[6]); //("data/zipf_stream.txt");
     adaptive_cms acms(W, H, R, fold+(W*R)<<2 , T);
     cms cms2(W*R, H, fold+(W*R)<<2);
-    float over_capacity=0;
-    acms.check_config();
-    cms2.check_config();
-
+    if (fold==0){
+      acms.check_config();
+      cms2.check_config();
+    }
     int cnum =0;
     while (syn_file>>k){
       key = kw2num(k);
@@ -69,12 +70,12 @@ int main(int argc, char** argv){
       over_capacity += acms.at_capacity(p.first);
       output_file << estimate_deep << ", " << estimate_big << "," << estimate << "," << true_count << std::endl;
     }
-    std::cout<<"reached capacity proportion "<<over_capacity/counts.size()<<std::endl;
     acms.del();
     cms2.del();
     syn_file.close();
 
   }
+  std::cout<<"reached capacity proportion "<<over_capacity/(10*counts.size())<<std::endl;  
   output_file.close();
   counts_file.close();
   return 1;
