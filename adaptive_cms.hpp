@@ -63,7 +63,7 @@ private:
     this->R = R;
     this->P = P;
     this->T = T;
-    std::mt19937 gen(100284+W+D+P+T);
+    std::mt19937 gen(100284+W+D+R);
     std::uniform_int_distribution<> dist(1, P);
 
     for (auto i=0; i<D; ++i) {
@@ -114,11 +114,10 @@ public:
 
   void add(uint64_t value) {
     uint32_t v;
-    unsigned W,D,R,T;
+    unsigned W,D,R;
     W = this->W;
     D = this->D;
     R = this->R;
-    T = this->T;
     for (auto i=0; i<D; ++i){
       ++ this->c[i*W + this->hash(value, i)];
     }
@@ -143,11 +142,10 @@ public:
   }
   
   void printCounts(uint64_t value) const {
-    uint32_t W, D, R, T;
+    uint32_t W, D, R;
     W = this->W;
     D = this->D;
     R = this->R;
-    T = this->T;
 
     for (auto i=0; i<D; ++i)
       fprintf(stderr, "%u=%u ", this->hash(value, i), this->c[i*W + this->hash(value, i)]);
@@ -178,28 +176,27 @@ public:
   }
 
   uint32_t hash(uint64_t value, int hi) const {
-    uint32_t W, D, R, T, P;
+    uint32_t W, D, P;
     W = this->W;
     D = this->D;
-    R = this->R;
     P = this->P;
     return ((value*this->a[hi] + this->b[hi]) % P) % W;
   }
 
   uint32_t hashDeep(uint64_t value, uint32_t i, uint32_t j) const{
-    uint32_t W, D, R, T, P;
+    uint32_t W, D, R, P;
     W = this->W;
     D = this->D;
     R = this->R;
     P = this->P;
-    return ((value * this->bb[i] + a[i]) % (P-1) % R);
+    int z = j%D;
+    return ((value * this->bb[z] + this->a[i]) % (P+1)) % R;
   }
   
   uint32_t countMin(uint64_t value) const {
-    uint32_t W, D, R;
+    uint32_t W, D;
     W = this->W;
     D = this->D;
-    R = this->R;
 
     uint32_t cnt = UINT_MAX;
     for (auto i=0; i<D; ++i)

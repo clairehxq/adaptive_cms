@@ -24,11 +24,11 @@ int main(){
   }
 
   //CountMinSketch<100, 10, 1<<5> cms;
-  for (int l=0; l<10; l++){
+  for (int l=0; l<15; l++){
     std::ifstream syn_file ("data/stream_k1024_1048576");
-    adaptive_cms cms(1<<6, 1<<1, 1<<2, 1<<10, 1000);
-    adaptive_cms cms2(1<<8, 1<<1, 1, 1<<10, 1000);
-    cms.check_config();
+    //adaptive_cms cms(1<<8, 1<<1, 1, 1<<10, 1000);
+    adaptive_cms cms2(1<<8, 1<<1, 1, 1<<10, 1<<l);
+    //cms.check_config();
     cms2.check_config();
     int cnum =0;
     
@@ -36,39 +36,26 @@ int main(){
     while (syn_file>>k){
       //std::cout<<k<<std::endl;
       key = kw2num(k);
-      cms.addDeep(key);
+      //cms.addDeep(key);
       cms2.add(key);
       cnum ++;
     }
 
-    printf("all added\n");
-    for (int i=0; i<3; i++){
-      std::pair<uint64_t, int> p = counts.at(1+i);
-      uint64_t key = p.first;
-      cms.addDeep(p.first);
-      cms2.add(key);
-      cms.printCountsDeep(p.first);
-      
-      printf("count min is %u\n", cms.countMin(p.first));
-      printf("count min Deep is %u\n", cms.countMinDeep(p.first));
-      printf("count min2 is %u\n", cms2.countMin(p.first));
-      
-    }
     
     int n=0;
     for (auto& p: counts){
       std::string key = num2kw(p.first);
-      uint32_t estimate_deep = cms.countMinDeep(p.first);
-      uint32_t estimate = cms.countMin(p.first);
+      //uint32_t estimate_deep = cms.countMinDeep(p.first);
+      //uint32_t estimate = cms.countMin(p.first);
       uint32_t estimate_big = cms2.countMin(p.first);
       int true_count = p.second;
-      
+      printf("estimate big %u, true count %u", estimate_big, true_count);
       if (n>10)
 	break;
       n++;
     }
     
-    cms.del();
+    //cms.del();
     cms2.del();
   }
   //printf("%d\n", cms.countMin(key));
