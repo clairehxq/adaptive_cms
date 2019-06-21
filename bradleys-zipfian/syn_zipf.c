@@ -68,10 +68,10 @@ int main (int argc, char *argv[] ) {
     }
     FILE *c_file, *s_file;
     if (argc >= 3){
-      int keys_exp = atoi(argv[1]);
-      int gen_counts_exp = atoi(argv[2]);
-      uint32_t keys = 1 << keys_exp;
-      uint32_t gen_counts = 1 << gen_counts_exp;
+      //int keys_exp = atoi(argv[1]);
+      //int gen_counts_exp = atoi(argv[2]);
+      u_int32_t keys = atoi(argv[1]); //1 << keys_exp;
+      u_int32_t gen_counts = atoi(argv[2]); //1 << gen_counts_exp;
       char *c_filename[20], *s_filename [20];
       strcpy(s_filename, "../data/stream_k");
       strcpy(c_filename, "../data/count_k");
