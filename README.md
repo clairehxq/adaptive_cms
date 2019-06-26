@@ -16,6 +16,8 @@ chmod u+x *.sh
 ```
 
 3. run experiment 
-3.1 ./exp.sh
-3.2 ./exp_row.sh
-3.3 ./exp_threshold.sh
+```
+./exp.sh
+./exp_row.sh
+./exp_threshold.sh
+```
