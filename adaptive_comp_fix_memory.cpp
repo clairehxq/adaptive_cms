@@ -12,12 +12,8 @@
 
 int main(int argc, char** argv){
   std::cout<<"usage: width, height, rows, threshold, counts_file_path, stream_file_path"<<std::endl;
-  //d::string line;
-  std::string counts_file_path = argv[5];
-  std::string syn_file_path = argv[5];
-  counts_file_path += argv[6];
-  syn_file_path += argv[7];
-  std::ifstream counts_file (counts_file_path); //("data/zipf_counts.txt");
+  std::string line;
+  std::ifstream counts_file (argv[5]); //("data/zipf_counts.txt");
   std::vector<std::pair<uint64_t, int> > counts;
   char k[20];
   int c;
@@ -30,9 +26,7 @@ int main(int argc, char** argv){
   T = atoi(argv[4]);
   //output file
   std::string file_name;
-  file_name += "res/";
-  file_name += argv[6];
-  file_name += '/';
+  file_name += "res/big/";
   for (int i = 1; i < 5; i++){
     file_name += argv[i];
     file_name += "_";
@@ -51,33 +45,51 @@ int main(int argc, char** argv){
   }
   // Width, Height, Rows, Hash_index_mean, threshold
   float over_capacity=0;
+  R = 8;
+  printf("fix r=8\n");
   for (int fold=0; fold<10; fold++){
-    std::ifstream syn_file (syn_file_path ); //("data/zipf_stream.txt");
+    std::ifstream syn_file (argv[6]); //("data/zipf_stream.txt");
     adaptive_cms acms(W, H, R, fold+(W*R)<<2 , T);
-    cms cms2(W*R, H, fold+(W*R)<<2);
+    cms scms(W, H, fold+(W*R)<<2);
+    
+    cms bcms_0(W, H*8, fold+(W*R)<<2);
+    cms bcms_1(W*2, H*4, 1+fold+(W*2*R)<<2);
+    cms bcms_2(W*4, H*2, 2+fold+(W*4*R)<<2);
+    cms bcms_3(W*8, H, 3+fold+(W*8*R)<<2);
     if (fold==0){
       acms.check_config();
-      cms2.check_config();
+      scms.check_config();
     }
     int cnum =0;
     while (syn_file>>k){
       key = kw2num(k);
       acms.addDeep(key);
-      cms2.add(key);
+      scms.add(key);
+      bcms_0.add(key);
+      bcms_1.add(key);
+      bcms_2.add(key);
+      bcms_3.add(key);
       cnum ++;
     }
 
     for (auto& p: counts){
       std::string key = num2kw(p.first);
       uint32_t estimate_deep = acms.countMinDeep(p.first);
-      uint32_t estimate = acms.countMin(p.first);
-      uint32_t estimate_big = cms2.countMin(p.first);
+      uint32_t estimate = scms.countMin(p.first);
+      uint32_t estimate_big0 = bcms_0.countMin(p.first);
+      uint32_t estimate_big1 = bcms_1.countMin(p.first);
+      uint32_t estimate_big2 = bcms_2.countMin(p.first);
+      uint32_t estimate_big3 = bcms_3.countMin(p.first);
       int true_count = p.second;
       over_capacity += acms.at_capacity(p.first);
-      output_file << estimate_deep << ", " << estimate_big << "," << estimate << "," << true_count << std::endl;
+      output_file << estimate_deep << ", " << estimate_big0 << ","<< estimate_big1<< "," << estimate_big2<< "," << estimate_big3 << "," << estimate << "," << true_count << std::endl;
     }
     acms.del();
-    cms2.del();
+    scms.del();
+    bcms_0.del();
+    bcms_1.del();
+    bcms_2.del();
+    bcms_3.del();
     syn_file.close();
 
   }
