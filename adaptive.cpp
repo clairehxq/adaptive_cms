@@ -21,7 +21,6 @@ float error(uint32_t e, uint32_t t){
   return (float)(e-t) / (float)t;
 }
 
-
 int main(int argc, char** argv){
   std::cout<<"usage: width, height, rows, threshold, data_file_path, counts_file, stream_file"<<std::endl;
   //d::string line;
@@ -37,6 +36,8 @@ int main(int argc, char** argv){
   unsigned W, H, R, T;
   double multiple_hh_p=0;
   double multiple_hh_p_topk=0;
+  double multiple_hh_p_deep=0;
+  double multiple_hh_p_topk_deep=0;
   int topkk=200;
   W = atoi(argv[1]);
   H = atoi(argv[2]);
@@ -77,6 +78,7 @@ int main(int argc, char** argv){
   int keys_at_capacity_all=0;
   for (int fold=0; fold<10; fold++){
     std::map<uint32_t, int > touched_blocks;
+    std::map<uint32_t, int > touched_blocks_deep;
     adaptive_cms acms(W, H, R, H+fold+(W*R)<<2 , T);
     cms bcms(W*R, H, fold+(W*R)<<2);
     if (fold==0){
@@ -118,16 +120,22 @@ int main(int argc, char** argv){
 
     int topk=0;
     uint32_t loc;
+    uint32_t loc_deep;
     for (auto& p: counts){
       if (topk<topkk){
 	std::string key = num2kw(p.first);
 	uint32_t estimate_deep = acms.countMinDeep(p.first);
 	for (int i=0; i<H; i++){
 	  loc = (acms.hash(p.first, i) << 3) + i;
+	  loc_deep = loc << 2 + acms.hashDeep(p.first, i, acms.hash(p.first, i));
 	  if (touched_blocks.find(loc) != touched_blocks.end())
 	    touched_blocks[loc] ++;
 	  else
 	    touched_blocks[loc] = 1;
+	  if (touched_blocks_deep.find(loc_deep) != touched_blocks_deep.end())
+	    touched_blocks_deep[loc_deep] ++;
+	  else
+	    touched_blocks_deep[loc_deep] = 1;
 	}
 	    
 	int tmp = acms.at_capacity(p.first);
@@ -137,8 +145,6 @@ int main(int argc, char** argv){
 	uint32_t estimate_comp = cms2.countMin(p.first);
 	uint32_t estimate_big = bcms.countMin(p.first);
 	int true_count = p.second;
-	//printf("true count out is %u\n", true_count);
-	//std::cout << estimate_deep << ", " << estimate_big << "," << estimate <<"," << true_count << std::endl;
 	output_file << error(estimate_deep,true_count) << ", " << error(estimate_comp,true_count) << "," << error(estimate_big,true_count)<<",";
 	output_file << estimate_deep-true_count << ", " << estimate_comp-true_count << "," << estimate_big-true_count <<"," << true_count << std::endl;
       }
@@ -159,6 +165,15 @@ int main(int argc, char** argv){
     multiple_hh_p_topk += multiple_hh / touched_blocks.size();
     multiple_hh = multiple_hh / (W*H);
     multiple_hh_p += multiple_hh;
+
+    for (auto &[key, value]:touched_blocks_deep){
+      //std::cout<<"multiple_hh "<<key<<" "<<value<<std::endl;
+      if(value >1)
+	multiple_hh_deep ++;
+    }
+    multiple_hh_p_topk_deep += multiple_hh_deep / touched_blocks_deep.size();
+    multiple_hh_deep = multiple_hh_deep / (W*H*R);
+    multiple_hh_p_deep += multiple_hh_deep;
     
     std::cout<<"reached capacity proportion "<<acms.at_capacity_proportion()<<std::endl;
     acms.del();
@@ -167,11 +182,15 @@ int main(int argc, char** argv){
   }
   multiple_hh_p = multiple_hh_p / 10;
   multiple_hh_p_topk = multiple_hh_p_topk / 10;
+  multiple_hh_p_deep = multiple_hh_p_deep / 10;
+  multiple_hh_p_topk_deep = multiple_hh_p_topk_deep / 10;
   std::cout<<"adaptive construction time" <<adaptive_time / 10 << std::endl;
   std::cout<<"adaptive keys at capacity from 200 keys "<<(double)keys_at_capacity_200 / (10 * topkk)<<std::endl;
   std::cout<<"adaptive keys at capacity counts "<< keys_at_capacity_all <<", from all keys proportion"<<(double)keys_at_capacity_all / (10 * counts.size()) <<std::endl;
   std::cout<<"multiple heavy hitters proportion from all "<< multiple_hh_p<<std::endl;
   std::cout<<"multiple heavy hitters proportion from topk "<< multiple_hh_p_topk<<std::endl;
+  std::cout<<"multiple heavy hitters proportion deep from all "<< multiple_hh_p_deep<<std::endl;
+  std::cout<<"multiple heavy hitters proportion deep from topk "<< multiple_hh_p_topk_deep<<std::endl;
   std::cout<<"bcms construction time" <<bcms_time / 10 << std::endl;
 
   output_file.close();
