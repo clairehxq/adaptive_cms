@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import functools
 
 def error(est, tr):
     return 1.0 * np.abs(est-tr) / tr
