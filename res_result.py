@@ -237,29 +237,29 @@ def read_res_abs_rel(f, p, topk):
     def extend_row(r, category):
         return [width, depth, row, threshold, category, r[0], r[1]]
 
-    t = pd.DataFrame(list(map(functool.partial(extend_row, category='adaptive') ,[d.adaptives, d.fold])), 
+    t = pd.DataFrame(list(map(functools.partial(extend_row, category='adaptive') ,[d.adaptives, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     d_err = d_err.append(t)
     
-    t = pd.DataFrame(list(map(extend_row, ['bcms', d.big_cms, d.fold])), 
+    t = pd.DataFrame(list(map(functools.partial(extend_row, category='bcms'), [d.big_cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     d_err = d_err.append(t)
     
-    t = pd.DataFrame(list(map(extend_row, ['ccms', d.cms, d.fold])), 
+    t = pd.DataFrame(list(map(functools.partial(extend_row, category='ccms'), [d.cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     d_err = d_err.append(t)
 
     # relative error
     d_err_rel = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
-    t = pd.DataFrame(list(map(extend_row, ['adaptive', d.rel_adaptives, d.fold])), 
+    t = pd.DataFrame(list(map(functools.partial(extend_row, category='adaptive'), [d.rel_adaptives, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
     d_err_rel = d_err_rel.append(t)
     
-    t = pd.DataFrame(list(map(extend_row,  ['bcms', d.rel_big_cms, d.fold])), 
+    t = pd.DataFrame(list(map(functools.partial(extend_row, category='bcms'), [d.rel_big_cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
     d_err_rel = d_err_rel.append(t)
     
-    t = pd.DataFrame(list(map(extend_row, ['ccms', d.rel_cms, d.fold])), 
+    t = pd.DataFrame(list(map(functools.partial(extend_row, category='ccms'), [d.rel_cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
     d_err_rel = d_err_rel.append(t)
     return d_err, d_err_rel
