@@ -234,10 +234,10 @@ def read_res_abs_rel(f, p, topk):
     tc = d.true_count
     
     d_err = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
-    def extend_row(r):
-        return [width, depth, row, r[0], r[1], r[2]]
+    def extend_row(r, category):
+        return [width, depth, row, threshold, category, r[0], r[1]]
 
-    t = pd.DataFrame(list(map(extend_row, ['adaptive', d.adaptives, d.fold])), 
+    t = pd.DataFrame(list(map(functool.partial(extend_row, category='adaptive') ,[d.adaptives, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     d_err = d_err.append(t)
     
