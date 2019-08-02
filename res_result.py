@@ -236,29 +236,30 @@ def read_res_abs_rel(f, p, topk):
     d_err = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     def extend_row(r):
         return [width, depth, row, r[0], r[1], r[2]]
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['adaptive', d.adaptives, d.fold])), 
+
+    t = pd.DataFrame(list(map(extend_row, ['adaptive', d.adaptives, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     d_err = d_err.append(t)
     
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['bcms', d.big_cms, d.fold])), 
+    t = pd.DataFrame(list(map(extend_row, ['bcms', d.big_cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     d_err = d_err.append(t)
     
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['ccms', d.cms, d.fold])), 
+    t = pd.DataFrame(list(map(extend_row, ['ccms', d.cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
     d_err = d_err.append(t)
 
     # relative error
     d_err_rel = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['adaptive', d.rel_adaptives, d.fold])), 
+    t = pd.DataFrame(list(map(extend_row, ['adaptive', d.rel_adaptives, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
     d_err_rel = d_err_rel.append(t)
     
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x),  ['bcms', d.rel_big_cms, d.fold])), 
+    t = pd.DataFrame(list(map(extend_row,  ['bcms', d.rel_big_cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
     d_err_rel = d_err_rel.append(t)
     
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['ccms', d.rel_cms, d.fold])), 
+    t = pd.DataFrame(list(map(extend_row, ['ccms', d.rel_cms, d.fold])), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
     d_err_rel = d_err_rel.append(t)
     return d_err, d_err_rel
