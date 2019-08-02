@@ -13,7 +13,7 @@ def error_dt(row):
             error(row['cms'], row['true_count']), row['true_count']
 
 def cal_depth(p):
-    d = log(1/(1-p))
+    d = np.log(1/(1-p))
     return d
 
 def cal_prob(d):
@@ -159,10 +159,10 @@ def read_res(f, p):
         res = f.readlines()
 
     for l in res:
-        adaptive, big_cms, cms, true_count = l.split(',')
+        adaptive, ccms, bcms, true_count = l.split(',')
         adaptives.append(float(adaptive))
-        big_cmss.append(float(big_cms))
-        cmss.append(float(cms))
+        cmss.append(float(ccms))
+        big_cmss.append(float(bcms))
         true_counts.append(int(true_count))
 
     d = pd.DataFrame(columns=[
@@ -179,31 +179,150 @@ def read_res(f, p):
     d_err = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error'])
     t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'adaptive', x], d.adaptives)), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
-
     d_err = d_err.append(t)
+    
     t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'bcms', x], d.big_cms)), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
+    d_err = d_err.append(t)
+    
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'ccms', x], d.cms)), 
                      columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
     d_err = d_err.append(t)
     return d_err
 
-def read_res_topk(f, k, path):
+def read_res_abs_rel(f, p, topk):
     adaptives = []
     big_cmss = []
     cmss = []
-    true_counts = []
-    #64_4_16_1000_4096
+    rel_adaptives = []
+    rel_big_cmss = []
+    rel_cmss = []
+    true_counts=[]
+    fold = []
     width, depth, row, threshold, memory = list(map(int, f.split('_')))
     small_w = width
-    with open(path+f, 'r') as f:
-    #with open('res_zipf', 'r') as f:
+    count=0
+    with open(p+f, 'r') as f:
         res = f.readlines()
 
     for l in res:
-        adaptive, big_cms, cms, true_count = l.split(',')
-        #keys.append(k1)
-        adaptives.append(int(adaptive))
-        big_cmss.append(int(big_cms))
-        cmss.append(int(cms))
+        radaptive, rccms, rbcms, adaptive, ccms, bcms, true_count = l.split(',')
+        rel_adaptives.append(float(radaptive))
+        rel_big_cmss.append(float(rbcms))
+        rel_cmss.append(float(rccms))
+        adaptives.append(float(adaptive))
+        cmss.append(float(ccms))
+        big_cmss.append(float(bcms))
+        true_counts.append(int(true_count))
+        fold.append(int(count/topk))
+        count += 1
+    d = pd.DataFrame(columns=[
+                              'adaptives',
+                              'big_cms',
+                              'cms',
+                              'true_count',
+                              'fold'])
+
+    d.adaptives = adaptives
+    d.big_cms = big_cmss
+    d.cms = cmss
+    d.rel_adaptives = rel_adaptives
+    d.rel_cms = rel_cmss
+    d.rel_big_cms = rel_big_cmss
+    d.fold = fold
+    d.true_count = true_counts
+    tc = d.true_count
+    
+    d_err = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
+    def extend_row(r):
+        return [width, depth, row, r[0], r[1], r[2]]
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['adaptive', d.adaptives, d.fold])), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
+    d_err = d_err.append(t)
+    
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['bcms', d.big_cms, d.fold])), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
+    d_err = d_err.append(t)
+    
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['ccms', d.cms, d.fold])), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
+    d_err = d_err.append(t)
+
+    # relative error
+    d_err_rel = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold'])
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['adaptive', d.rel_adaptives, d.fold])), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
+    d_err_rel = d_err_rel.append(t)
+    
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x),  ['bcms', d.rel_big_cms, d.fold])), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
+    d_err_rel = d_err_rel.append(t)
+    
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold].extend(x), ['ccms', d.rel_cms, d.fold])), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error', 'fold' ])
+    d_err_rel = d_err_rel.append(t)
+    return d_err, d_err_rel
+
+def read_res_topk(f, k, p):
+    adaptives = []
+    big_cmss = []
+    cmss = []
+    true_counts=[]
+    width, depth, row, threshold, memory = list(map(int, f.split('_')))
+    small_w = width
+    with open(p+f, 'r') as f:
+        res = f.readlines()
+
+    for l in res:
+        adaptive, ccms, bcms, true_count = l.split(',')
+        adaptives.append(float(adaptive))
+        cmss.append(float(ccms))
+        big_cmss.append(float(bcms))
+        true_counts.append(int(true_count))
+
+    d = pd.DataFrame(columns=[
+                              'adaptives',
+                              'big_cms',
+                              'cms',
+                              'true_count'])
+
+    d.adaptives = adaptives
+    d.big_cms = big_cmss
+    d.cms = cmss
+    d.true_count =true_counts
+    d = d.sort_values('true_count', ascending=False).reset_index(drop=True)
+    d = d.loc[:(k*10)]
+    tc = d.true_count
+    d_err = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error'])
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'adaptive', x], d.adaptives)), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
+    d_err = d_err.append(t)
+    
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'bcms', x], d.big_cms)), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
+    d_err = d_err.append(t)
+    
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'ccms', x], d.cms)), 
+                     columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
+    d_err = d_err.append(t)
+    return d_err
+
+
+def read_res_row(f, p):
+    adaptives = []
+    big_cmss = []
+    cmss = []
+    true_counts=[]
+    width, depth, row, threshold, memory = list(map(int, f.split('_')))
+    small_w = width
+    with open(p+f, 'r') as f:
+        res = f.readlines()
+
+    for l in res:
+        adaptive, ccms, big_cms, true_count = l.split(',')
+        adaptives.append(float(adaptive))
+        big_cmss.append(float(big_cms))
+        cmss.append(float(ccms))
         true_counts.append(int(true_count))
 
     d = pd.DataFrame(columns=[
@@ -216,33 +335,17 @@ def read_res_topk(f, k, path):
     d.big_cms = big_cmss
     d.cms = cmss
     d.true_count = true_counts
-    d = d.sort_values('true_count', ascending=False).reset_index(drop=True)
-    d = d.loc[:(k*10)]
-    d_err = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
-    #d.iloc[:, :-1] = 1.0 * (d.iloc[:, :-1]-d.loc[:, 'true_count']) / d.loc[:, "true_count"] #.apply(error_dt, axis=1)
     tc = d.true_count
-    d = d.sub(tc, axis=0)
-    d = d.div(tc, axis=0)
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'adaptive', x], d.adaptives)), 
-                     columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
+    d_err = pd.DataFrame(columns=['width', 'height', 'row', 'threshold', 'error'])
+    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, x], d.adaptives)), 
+                     columns=['width', 'height', 'row', 'threshold', 'error' ])
+
     d_err = d_err.append(t)
-    t = pd.DataFrame(list(map(lambda x: [width, depth, row, threshold, 'bcms', x], d.big_cms)), 
-                     columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
+    t = pd.DataFrame(list(map(lambda x: [width, depth, 0,  threshold, x], d.big_cms)), 
+                     columns=['width', 'height', 'row', 'threshold', 'error' ])
     d_err = d_err.append(t)
-    big_w = small_w * row
-    small_epsilon = np.e / small_w
-    big_epsilon = np.e / big_w
-
-    s_add_error = small_epsilon * sum(d.true_count)
-    b_add_error = big_epsilon * sum(d.true_count)
-
-    #d_err['cms_error_bound'] = list(map(lambda x: 1.0 * (s_add_error) / x[3], d_error))
-    #d_err['bcms_error_bound'] = list(map(lambda x: 1.0 * (b_add_error) / x[3], d_error))
-
-    m_error = np.mean(d_err[:(1<<10)])
-    m_error_a = np.mean(d_err)
-
     return d_err
+
 
 def read_res_fix_memory(f, p):
     adaptives = []
@@ -251,23 +354,24 @@ def read_res_fix_memory(f, p):
     true_counts = []
     width, depth, row, threshold, memory = list(map(int, f.split('_')))
     small_w = width
+    log_r = int(np.log2(row))
     with open(p+f, 'r') as f:
     #with open('res_zipf', 'r') as f:
         res = f.readlines()
 
-    n = len(res[0].split(',')) - 3
+    n = len(res[0].split(',')) - 2
     nn=0
     for l in res:
         
         ll = l.split(',')
         adaptive = ll[0]
-        big_cms = list(map(int, ll[1:1+n]))
+        big_cms = list(map(float, ll[1:1+n]))
         cms = ll[-2] 
         true_count  = ll[-1]
         #keys.append(k1)
-        adaptives.append(int(adaptive))
+        adaptives.append(float(adaptive))
         big_cmss.append(big_cms)
-        cmss.append(int(cms))
+        cmss.append(float(cms))
         true_counts.append(int(true_count))
         nn += 1
         if nn>1000:
@@ -296,7 +400,7 @@ def read_res_fix_memory(f, p):
     d_err = d_err.append(t)
     
     for i in range(n):
-        t = pd.DataFrame(list(map(lambda x: [width*(1<<i), depth*(1<<(3-i)), row, threshold, 'bcms_{}'.format(i), x],\
+        t = pd.DataFrame(list(map(lambda x: [width*(1<<i), depth*(1<<(log_r-i)), row, threshold, 'bcms_{}'.format(i), x],\
                                   d[i])), 
                         columns=['width', 'height', 'row', 'threshold', 'category', 'error' ])
         d_err = d_err.append(t)
