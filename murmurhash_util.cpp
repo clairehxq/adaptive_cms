@@ -20,14 +20,14 @@
 
 // 64-bit hash for 64-bit platforms
 
-uint64_t MurmurHash64A ( const void * key, int len, uint64_t seed )
+uint64_t MurmurHash64A ( const uint64_t * data, int len, uint64_t seed )
 {
   const uint64_t m = 0xc6a4a7935bd1e995;
   const int r = 47;
 
   uint64_t h = seed ^ (len * m);
 
-  const uint64_t * data = (const uint64_t *)key;
+  //const uint64_t * data = (const uint64_t *)key;
   const uint64_t * end = data + (len/8);
 
   while(data != end)
