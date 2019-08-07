@@ -38,7 +38,7 @@ int main(int argc, char** argv){
   double multiple_hh_p_topk=0;
   double multiple_hh_p_deep=0;
   double multiple_hh_p_topk_deep=0;
-  int topkk=200;
+  int topkk=100;
   W = atoi(argv[1]);
   H = atoi(argv[2]);
   R = atoi(argv[3]);
@@ -47,7 +47,7 @@ int main(int argc, char** argv){
   std::string file_name;
   file_name += "rel_res/";
   file_name += argv[6];
-  file_name += "/top200/";
+  file_name += "/top100/";
   for (int i = 1; i < 5; i++){
     file_name += argv[i];
     file_name += "_";

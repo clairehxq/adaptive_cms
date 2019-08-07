@@ -8,6 +8,7 @@
 #include <algorithm> 
 #include <time.h>
 #include "murmurhash_util.h"
+
 static inline std::string num2kw(uint64_t value)
 {
   const char base36[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -214,14 +215,14 @@ public:
   }
   
   uint32_t hash(uint64_t value, int hi) const {
-    uint64_t mask = (1<<24) - 1;
-    uint64_t key = (value << 3) + hi;
-    return MurmurHash64B(&key, 24, this->SEED);
+    uint64_t hvalue = MurmurHash64B(&value, 24, this->SEED+hi);
+    //printf("hashed %u", hvalue);
+    return hvalue % this->W;
   }
 
   uint32_t hashDeep(uint64_t value, uint32_t i, uint32_t j) const{
-    uint64_t key = (value << 3) + i;
-    return MurmurHash64B(&key, 24, this->SEED+j);
+    uint64_t hvalue = MurmurHash64B(&value, 24, this->SEED+((j<<2)+i));
+    return hvalue % this->R;
   }
 
   uint32_t countMin(uint64_t value) const {
