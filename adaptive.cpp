@@ -127,7 +127,11 @@ int main(int argc, char** argv){
 	uint32_t estimate_deep = acms.countMinDeep(p.first);
 	for (int i=0; i<H; i++){
 	  loc = (acms.hash(p.first, i) << 3) + i;
+	  //printf("hash %u is %u\n", p.first, acms.hash(p.first, i));
 	  loc_deep = loc << 2 + acms.hashDeep(p.first, i, acms.hash(p.first, i));
+	  //printf("hash deep %u is %u\n", p.first, acms.hashDeep(p.first, i, acms.hash(p.first, i)));
+	  //acms.printCounts(p.first);
+	  //acms.printCountsDeep(p.first);
 	  if (touched_blocks.find(loc) != touched_blocks.end())
 	    touched_blocks[loc] ++;
 	  else
@@ -137,7 +141,7 @@ int main(int argc, char** argv){
 	  else
 	    touched_blocks_deep[loc_deep] = 1;
 	}
-	    
+	//acms.printAll();
 	int tmp = acms.at_capacity(p.first);
 	keys_at_capacity_200 += tmp;
 	keys_at_capacity_all += tmp;

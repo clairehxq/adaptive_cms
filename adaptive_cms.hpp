@@ -95,7 +95,7 @@ public:
   }
 
   int at_capacity(uint64_t value, int i){
-    int j = this->hash(value, i);
+    uint32_t j = this->hash(value, i);
     if ( this->c[i*this->W + j] > this->T)
       return 1;
     else
@@ -214,15 +214,20 @@ public:
     return ((value * this->bb[z] + this->a[i]) % (P+1)) % R;
   }
   
-  uint32_t hash(uint64_t value, int hi) const {
-    uint64_t hvalue = MurmurHash64B(&value, 24, this->SEED+hi);
+  uint32_t hash(const uint64_t value, int hi) const {
+    uint64_t key = (value<<3)+hi;
+    uint64_t hvalue = MurmurHash64A( & key, 24, this->SEED+hi);
+    //MurmurHash64A ( const uint64_t * data, int len, unsigned int seed );
+    uint64_t k=1000;
+    //MurmurHash64A( & k, 24, 832920);
     //printf("hashed %u", hvalue);
-    return hvalue % this->W;
+    return (uint32_t) hvalue % this->W;
   }
 
-  uint32_t hashDeep(uint64_t value, uint32_t i, uint32_t j) const{
-    uint64_t hvalue = MurmurHash64B(&value, 24, this->SEED+((j<<2)+i));
-    return hvalue % this->R;
+  uint32_t hashDeep(const uint64_t value, uint32_t i, uint32_t j) const{
+    uint64_t key = value;
+    uint64_t hvalue = MurmurHash64A(& key, 24, this->SEED+((j<<2)+i));
+    return (uint32_t) hvalue % this->R;
   }
 
   uint32_t countMin(uint64_t value) const {
