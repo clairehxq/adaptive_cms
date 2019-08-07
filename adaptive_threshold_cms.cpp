@@ -1,4 +1,4 @@
-#ifndef ADAPTIVE_HPP
+#ifndef ADAPTIVE_T_HPP
 #include <iostream>
 #include <vector>
 #include <string>
@@ -6,8 +6,7 @@
 #include <climits>
 #include <random>
 #include <algorithm> 
-#include <time.h>
-
+#include <map>
 static inline std::string num2kw(uint64_t value)
 {
   const char base36[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -45,13 +44,12 @@ inline uint64_t kw2num(const char *cur) {
 }
 
 //template<unsigned W, unsigned D, unsigned R, unsigned P, unsigned T>
-class adaptive_cms{
-  
+class adaptive_t_cms{
 private:
-  unsigned W, D, R, P, T;
+  unsigned W, D, R, P, K, N;
   uint32_t *__dataDeep,*__data;
   uint32_t *a, *b, *c, *bb, *cd;
-  void init(unsigned W, unsigned D, unsigned R, unsigned P, unsigned T){
+  void init(unsigned W, unsigned D, unsigned R, unsigned P, unsigned K, unsigned N){
     this->__dataDeep = new uint32_t[D * W * R];
     this->__data = new uint32_t[D * (3+W)];
     this->a = this->__data; //&(this->__data[0]);
@@ -63,9 +61,9 @@ private:
     this->D = D;
     this->R = R;
     this->P = P;
-    this->T = T;
-    //std::mt19937 gen(100284+W+D+R);
-    std::mt19937 gen(time(NULL));
+    this->K = K;
+    this->N = N;
+    std::mt19937 gen(100284+W+D+R);
     std::uniform_int_distribution<> dist(1, P);
 
     for (auto i=0; i<D; ++i) {
@@ -77,7 +75,11 @@ private:
   }
 
 public:
+  std:map<uint32_t, int> ijs;   
+  std::vector<uint32_t> positions;
+  
   int global_c = 0;
+  int expanded=0;
   uint32_t max_v=0;
   adaptive_cms(unsigned W, unsigned D, unsigned R, unsigned P, unsigned T){
     this->init(W, D, R, P, T);
@@ -104,7 +106,7 @@ public:
     int c=0;
     for (int i=0; i<this->D; i++)
       c += this->at_capacity(value, i);
-    if (c == this->D)
+    if (c >= this->D)
       return 1;
     else
       return 0;
@@ -112,13 +114,12 @@ public:
 
   double at_capacity_proportion(){
     double total = (double) this->W * this->D;
-    double count=0;
-    for (int i=0; i<(this->W*this->D); i++){
+    double c=0;
+    for (int i=0; i<W*D; i++){
       if (this->c[i] > this->T)
-	count+=1;
+	c++;
     }
-    //printf("blocks exceed is %lf, total blocks %lf; proportion is %lf\n", count, total, count/total);
-    return count/total;
+    return c/total;
   }
   
   void check_config(){
@@ -146,9 +147,23 @@ public:
     for (auto i=0; i<D; ++i){
       uint32_t j = this->hash(value, i);
       ++ this->c[i*W + j];
-      if (this->c[i*W + j] > T)
-	++ this->cd[i*W*R + j*R + this->hashDeep(value, i, j)];
-
+      v = this->c[i*W + j];
+      if (v>this->max_v){
+	this->max_v=v;
+	this->update_threshold();
+      }
+      uint32_t ij = i<<4+j;
+      if (v>this->T){
+	auto position = this->ijs.find(ij);
+	if (position != this->ijs.end()) //ij has already been expanded
+	  ++ this->cd[position*(R+1) + this->hashDeep(value, i, j) + 1];
+	else{ //find the argmin(ijs), remove; add ij to ijs at that position 
+	  int argcdmin = min_max(cd, n, r);
+	  int key = this->positions.at(argcdmin);
+	  this->ijs.remove(key);
+	  
+	}
+      }
     }
     this->global_c++;
   }
@@ -177,13 +192,6 @@ public:
     }
   }
 
-  void printAll() const{
-    printf("print all data\n");
-    for (int i=0; i<(this->W*this->D); i++){
-      printf("%u ", this->c[i]);
-    }
-  }
-  
   void remove(uint64_t value) {
     uint32_t W, D, R, T;
     W = this->W;

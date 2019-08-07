@@ -157,6 +157,7 @@ int main(int argc, char** argv){
       topk ++;
     }
     double multiple_hh = 0;
+    double multiple_hh_deep = 0;
     for (auto &[key, value]:touched_blocks){
       //std::cout<<"multiple_hh "<<key<<" "<<value<<std::endl;
       if(value >1)
