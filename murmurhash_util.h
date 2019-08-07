@@ -14,10 +14,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-uint32_t MurmurHash64B ( const void * key, int len, unsigned int seed );
-uint32_t MurmurHash64A ( const void * key, int len, unsigned int seed );
+uint64_t MurmurHash64B ( const void * key, int len, uint64_t seed );
+uint64_t MurmurHash64A ( const void * key, int len, unsigned int seed );
 
-uint32_t hash_64(uint64_t key, uint64_t mask);
-uint32_t hash_64i(uint64_t key, uint64_t mask);
+uint64_t hash_64(uint64_t key, uint64_t mask);
+uint64_t hash_64i(uint64_t key, uint64_t mask);
 
 #endif  // #ifndef _HASHUTIL_H_
