@@ -7,7 +7,7 @@
 #include <random>
 #include <algorithm> 
 #include <time.h>
-
+#include "murmurhash_util.h"
 static inline std::string num2kw(uint64_t value)
 {
   const char base36[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -49,6 +49,7 @@ class adaptive_cms{
   
 private:
   unsigned W, D, R, P, T;
+  uint64_t SEED = time(NULL);
   uint32_t *__dataDeep,*__data;
   uint32_t *a, *b, *c, *bb, *cd;
   void init(unsigned W, unsigned D, unsigned R, unsigned P, unsigned T){
@@ -65,7 +66,7 @@ private:
     this->P = P;
     this->T = T;
     //std::mt19937 gen(100284+W+D+R);
-    std::mt19937 gen(time(NULL));
+    std::mt19937 gen(this->SEED);
     std::uniform_int_distribution<> dist(1, P);
 
     for (auto i=0; i<D; ++i) {
@@ -194,7 +195,7 @@ public:
       --this->c[i*W + this->hash(value, i)];
   }
 
-  uint32_t hash(uint64_t value, int hi) const {
+  uint32_t hash_old(uint64_t value, int hi) const {
     uint32_t W, D, P;
     W = this->W;
     D = this->D;
@@ -202,7 +203,7 @@ public:
     return ((value*this->a[hi] + this->b[hi]) % P) % W;
   }
 
-  uint32_t hashDeep(uint64_t value, uint32_t i, uint32_t j) const{
+  uint32_t hashDeep_old(uint64_t value, uint32_t i, uint32_t j) const{
     uint32_t W, D, R, P;
     W = this->W;
     D = this->D;
@@ -212,6 +213,17 @@ public:
     return ((value * this->bb[z] + this->a[i]) % (P+1)) % R;
   }
   
+  uint32_t hash(uint64_t value, int hi) const {
+    uint64_t mask = (1<<24) - 1;
+    uint64_t key = (value << 3) + hi;
+    return MurmurHash64B(&key, 24, this->SEED);
+  }
+
+  uint32_t hashDeep(uint64_t value, uint32_t i, uint32_t j) const{
+    uint64_t key = (value << 3) + i;
+    return MurmurHash64B(&key, 24, this->SEED+j);
+  }
+
   uint32_t countMin(uint64_t value) const {
     uint32_t W, D;
     W = this->W;
