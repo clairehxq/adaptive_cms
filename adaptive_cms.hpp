@@ -216,7 +216,7 @@ public:
   
   uint32_t hash(const uint64_t value, int hi) const {
     uint64_t hvalue = MurmurHash64A( &value, sizeof(value), this->SEED+hi);
-    printf("hvalue is %u\n", hvalue);
+    //printf("hvalue is %u\n", hvalue);
     //MurmurHash64A ( const uint64_t * data, int len, unsigned int seed );
     //MurmurHash64A( & k, 24, 832920);
     //printf("hashed %u", hvalue);
