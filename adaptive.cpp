@@ -125,6 +125,7 @@ int main(int argc, char** argv){
       if (topk<topkk){
 	std::string key = num2kw(p.first);
 	uint32_t estimate_deep = acms.countMinDeep(p.first);
+	
 	for (int i=0; i<H; i++){
 	  loc = (acms.hash(p.first, i) << 3) + i;
 	  //printf("hash %u is %u\n", p.first, acms.hash(p.first, i));
