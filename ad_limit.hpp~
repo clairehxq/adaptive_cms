@@ -264,7 +264,7 @@ public:
     uint32_t cnt = UINT_MAX;
     for (uint32_t i=0; i<D; ++i){
       uint32_t j = hash(value, i);
-      if (this->extended_set.find((j<<3)+i) == this->extended_set.end()){
+      if ((this->c[i*W + j] <= T) || (this->extended_set.find((j<<3)+i) == this->extended_set.end())){
 	cnt = std::min(cnt, this->c[i*W + j]);
       }
       else{
