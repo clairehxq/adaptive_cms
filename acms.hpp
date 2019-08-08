@@ -7,7 +7,7 @@
 #include <random>
 #include <algorithm> 
 #include <time.h>
-#include "hashutil.hpp"
+#include "murmurhash_util.h"
 
 static inline std::string num2kw(uint64_t value)
 {
@@ -49,11 +49,11 @@ inline uint64_t kw2num(const char *cur) {
 class adaptive_cms{
   
 private:
-  uint32_t W, D, R, P, T;
+  unsigned W, D, R, P, T;
   uint64_t SEED = time(NULL);
   uint32_t *__dataDeep,*__data;
   uint32_t *a, *b, *c, *bb, *cd;
-  void init(uint32_t W, uint32_t D, uint32_t R, uint32_t P, uint32_t T){
+  void init(unsigned W, unsigned D, unsigned R, unsigned P, unsigned T){
     this->__dataDeep = new uint32_t[D * W * R];
     this->__data = new uint32_t[D * (3+W)];
     this->a = this->__data; //&(this->__data[0]);
@@ -66,11 +66,13 @@ private:
     this->R = R;
     this->P = P;
     this->T = T;
+    
     //std::mt19937 gen(100284+W+D+R);
     std::mt19937 gen(this->SEED);
+    
     std::uniform_int_distribution<> dist(1, P);
 
-    for (uint32_t i=0; i<D; ++i) {
+    for (auto i=0; i<D; ++i) {
       this->a[i] = dist(gen);
       this->b[i] = dist(gen);
       this->bb[i] = dist(gen);
@@ -81,11 +83,11 @@ private:
 public:
   int global_c = 0;
   uint32_t max_v=0;
-  adaptive_cms(uint32_t W, uint32_t D, uint32_t R, uint32_t P, uint32_t T){
+  adaptive_cms(unsigned W, unsigned D, unsigned R, unsigned P, unsigned T){
     this->init(W, D, R, P, T);
   }
 
-  void clear(uint32_t W, uint32_t D, uint32_t R){
+  void clear(int W, int D, int R){
     std::fill(this->c, this->c+W*D, 0);
     std::fill(this->cd, this->cd+W*D*R, 0);
   }
@@ -94,8 +96,8 @@ public:
     delete[] this->__dataDeep;
   }
 
-  int at_capacity(uint64_t value, uint32_t i){
-    uint32_t j = this->hash(value, i);
+  int at_capacity(uint64_t value, int i){
+    int j = this->hash(value, i);
     if ( this->c[i*this->W + j] > this->T)
       return 1;
     else
@@ -106,52 +108,42 @@ public:
     int c=0;
     for (int i=0; i<this->D; i++)
       c += this->at_capacity(value, i);
-    if (c == this->D)
+    if (c >= this->D)
       return 1;
     else
       return 0;
   }
 
-  double at_capacity_proportion(){
-    double total = (double) this->W * this->D;
-    double count=0;
-    for (uint32_t i=0; i<(this->W*this->D); i++){
-      if (this->c[i] > this->T)
-	count+=1;
-    }
-    //printf("blocks exceed is %lf, total blocks %lf; proportion is %lf\n", count, total, count/total);
-    return count/total;
-  }
-  
   void check_config(){
     printf("Width %u, height %u, rows %u, p %u, threshold %u\n", this->W, this->D, this->R, this->P, this->T);
   }
 
   void add(uint64_t value) {
-    uint32_t v,W,D,R;
+    uint32_t v;
+    unsigned W,D,R;
     W = this->W;
     D = this->D;
     R = this->R;
-    for (uint32_t i=0; i<D; ++i){
+    for (auto i=0; i<D; ++i){
       ++ this->c[i*W + this->hash(value, i)];
     }
     this->global_c++;
   }
 
   void addDeep(uint64_t value) {
-    uint32_t W,D,R,T,v;
+    unsigned W,D,R,T, v;
     W = this->W;
     D = this->D;
     R = this->R;
     T = this->T;
-    for (uint32_t i=0; i<D; ++i){
+    for (auto i=0; i<D; ++i){
       uint32_t j = this->hash(value, i);
-      ++ this->c[(i*W) + j];
+      ++ this->c[i*W + j];
+      v = this->c[i*W + j];
       if (this->c[i*W + j] > T){
 	++ this->cd[i*W*R + j*R + this->hashDeep(value, i, j)];
       }
     }
-    
     this->global_c++;
   }
   
@@ -161,31 +153,24 @@ public:
     D = this->D;
     R = this->R;
 
-    for (uint32_t i=0; i<D; ++i)
+    for (auto i=0; i<D; ++i)
       fprintf(stderr, "%u=%u ", this->hash(value, i), this->c[i*W + this->hash(value, i)]);
     fprintf(stderr, "\n");
   }
 
   void printCountsDeep(uint64_t value) const {
-    uint32_t W = this->W;
-    uint32_t D = this->D;
-    uint32_t R = this->R;
-    for (uint32_t i=0; i<D; ++i){
-      int j = this->hash(value, i);
-      for (uint32_t l=0; l<this->R; l++){
+    int W = this->W;
+    int D = this->D;
+    int R = this->R;
+    for (auto i=0; i<D; ++i){
+      uint32_t j = this->hash(value, i);
+      for (int l=0; l<this->R; l++){
 	printf("%u ", this->cd[i*W*R + j*R + l]);
       }
       fprintf(stderr, "\n");
     }
   }
 
-  void printAll() const{
-    printf("print all data\n");
-    for (uint32_t i=0; i<(this->W*this->D); i++){
-      printf("%u ", this->c[i]);
-    }
-  }
-  
   void remove(uint64_t value) {
     uint32_t W, D, R, T;
     W = this->W;
@@ -204,7 +189,14 @@ public:
     return ((value*this->a[hi] + this->b[hi]) % P) % W;
   }
 
-  uint32_t hashDeep_old(uint64_t value, uint32_t i, uint32_t j) const{
+  uint32_t hash(uint64_t value, int hi) const {
+    uint64_t mask = (1<<24) - 1;
+    uint64_t key = (value << 3) + hi;
+    return MurmurHash64B(&key, 24, this->SEED);
+  }
+
+
+  uint32_t hashDeepOld(uint64_t value, uint32_t i, uint32_t j) const{
     uint32_t W, D, R, P;
     W = this->W;
     D = this->D;
@@ -213,19 +205,10 @@ public:
     int z = j%D;
     return ((value * this->bb[z] + this->a[i]) % (P+1)) % R;
   }
-  
-  uint32_t hash(const uint64_t value, int hi) const {
-    uint64_t hvalue = MurmurHash64A( &value, sizeof(value), this->SEED+hi);
-    printf("hvalue is %u\n", hvalue);
-    //MurmurHash64A ( const uint64_t * data, int len, unsigned int seed );
-    //MurmurHash64A( & k, 24, 832920);
-    //printf("hashed %u", hvalue);
-    return (uint32_t) hvalue % this->W;
-  }
 
-  uint32_t hashDeep(const uint64_t value, int i, uint32_t j) const{
-    uint64_t hvalue = MurmurHash64A(& value, sizeof(value), this->SEED+((j<<2)+i));
-    return (uint32_t) hvalue % this->R;
+  uint32_t hashDeep(uint64_t value, uint32_t i, uint32_t j) const{
+    uint64_t key = (value << 3) + i;
+    return MurmurHash64B(&key, 24, this->SEED+j);
   }
 
   uint32_t countMin(uint64_t value) const {
@@ -234,9 +217,8 @@ public:
     D = this->D;
 
     uint32_t cnt = UINT_MAX;
-    for (uint32_t i=0; i<D; ++i){
+    for (auto i=0; i<D; ++i)
       cnt = std::min(cnt, this->c[i*W + this->hash(value, i)]);
-    }
     return cnt;
   }
 
@@ -248,7 +230,7 @@ public:
     T = this->T;
 
     uint32_t cnt = UINT_MAX;
-    for (uint32_t i=0; i<D; ++i){
+    for (auto i=0; i<D; ++i){
       uint32_t j = hash(value, i);
       if (this->c[i*W + j] <= T){
 	cnt = std::min(cnt, this->c[i*W + j]);

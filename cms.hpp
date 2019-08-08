@@ -6,7 +6,7 @@
 #include <climits>
 #include <random>
 #include <algorithm> 
-
+#include <time.h>
 
 //template<unsigned W, unsigned D, unsigned R, unsigned P, unsigned T>
 class cms{
@@ -15,6 +15,7 @@ private:
   unsigned W, D, P;
   uint32_t *__dataDeep,*__data;
   uint32_t *a, *b, *c;
+  uint64_t SEED=time(NULL);
   void init(unsigned W, unsigned D, unsigned P){
     this->__data = new uint32_t[D * (2+W)];
     this->a = this->__data; //&(this->__data[0]);
@@ -23,7 +24,7 @@ private:
     this->W = W;
     this->D = D;
     this->P = P;
-    std::mt19937 gen(100284+W+D+P);
+    std::mt19937 gen(this->SEED); //100284+W+D+P);
     std::uniform_int_distribution<> dist(1, P);
 
     for (auto i=0; i<D; ++i) {
@@ -82,12 +83,17 @@ public:
       --this->c[i*W + this->hash(value, i)];
   }
 
-  uint32_t hash(uint64_t value, int hi) const {
+  uint32_t hashold(uint64_t value, int hi) const {
     uint32_t W, D, P;
     W = this->W;
     D = this->D;
     P = this->P;
     return ((value*this->a[hi] + this->b[hi]) % P) % W;
+  }
+
+  uint32_t hash(const uint64_t value, int hi) const {
+    uint64_t hvalue = MurmurHash64A( & value, sizeof(value),  this->SEED+hi);
+    return (uint32_t) hvalue % this->W;
   }
 
   uint32_t countMin(uint64_t value) const {
